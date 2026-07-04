@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Data Wall — Officer Dashboard</title>
+<style>
+  :root{
+    --blue-deep:#1E5A8E;
+    --blue-mid:#3579B1;
+    --blue-tint:#EAF2FA;
+    --blue-tint2:#D7E7F7;
+    --red:#C0392B;
+    --green:#2F6F4E;
+    --green-tint:#E7F3EC;
+    --bg:#F5F7FA;
+    --card:#FFFFFF;
+    --text:#1F2937;
+    --muted:#667085;
+    --border:#DCE4EC;
+    --border-strong:#B9CBDD;
+    --radius:10px;
+    --shadow:0 1px 3px rgba(16,24,40,0.06);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);}
+  .app{max-width:920px;margin:0 auto;padding:24px 20px 60px;}
+  .brand h1{font-size:22px;font-weight:600;margin:0 0 2px;color:var(--blue-deep);}
+  .brand p{margin:0 0 20px;font-size:13px;color:var(--muted);}
+  .gate{max-width:340px;margin:80px auto;text-align:center;}
+  .gate .card{padding:28px 24px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);}
+  .gate h2{font-size:16px;margin:0 0 14px;color:var(--blue-deep);}
+  .gate input{width:100%;padding:10px;border:1px solid var(--border-strong);border-radius:8px;font-size:15px;text-align:center;letter-spacing:2px;margin-bottom:12px;}
+  .gate button{width:100%;background:var(--blue-deep);color:#fff;border:none;border-radius:8px;padding:10px;font-size:14px;font-weight:600;cursor:pointer;}
+  .gate .err{color:var(--red);font-size:13px;margin-top:10px;display:none;}
+  .gate .err.show{display:block;}
+  .officer-toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+  .officer-toolbar input{flex:1;min-width:200px;padding:9px 10px;border:1px solid var(--border-strong);border-radius:8px;font-size:14px;}
+  button.small{background:var(--blue-deep);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;}
+  .empty{text-align:center;color:var(--muted);padding:40px 20px;font-size:14px;}
+  .sub-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px;}
+  .sub-summary{display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;}
+  .ring-wrap{position:relative;width:52px;height:52px;flex-shrink:0;}
+  .ring-wrap svg{transform:rotate(-90deg);}
+  .ring-label{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--blue-deep);}
+  .sub-meta{flex:1;min-width:0;}
+  .sub-meta .names{font-weight:700;font-size:14px;color:var(--text);}
+  .sub-meta .sub{font-size:12px;color:var(--muted);margin-top:2px;}
+  .chevron{color:var(--muted);font-size:18px;transition:transform .15s ease;}
+  .sub-detail{display:none;border-top:1px solid var(--border);padding:14px 16px;background:var(--bg);}
+  .sub-detail.open{display:block;}
+  .detail-block{margin-bottom:14px;}
+  .detail-block h3{font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--red);margin:0 0 8px;font-weight:700;}
+  .detail-block table{width:100%;border-collapse:collapse;font-size:14px;background:#fff;border-radius:6px;overflow:hidden;}
+  .detail-block th{text-align:left;font-size:12px;color:var(--muted);font-weight:700;padding:6px 8px;border-bottom:2px solid var(--border);}
+  .detail-block td{padding:7px 8px;border-bottom:1px solid var(--border);}
+  .free-text{font-size:13px;color:var(--text);white-space:pre-wrap;background:#fff;border:1px solid var(--border);border-radius:6px;padding:10px;}
+  .loading{text-align:center;color:var(--muted);padding:30px;font-size:14px;}
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <div class="card">
+    <h2>Officer dashboard — enter passcode</h2>
+    <input type="password" id="passcodeInput" placeholder="Passcode" onkeydown="if(event.key==='Enter') checkPasscode();" />
+    <button onclick="checkPasscode()">Enter</button>
+    <div class="err" id="gateErr">Incorrect passcode.</div>
+  </div>
+</div>
+
+<div class="app" id="dashboardApp" style="display:none;">
+  <div class="brand">
+    <h1>Data Wall — Officer Dashboard</h1>
+    <p>All teacher submissions, pulled live from the Google Sheet.</p>
+  </div>
+  <div class="officer-toolbar">
+    <input type="text" id="searchBox" placeholder="Search by center, teacher, or subject" oninput="renderOfficerList()" />
+    <button class="small" onclick="loadSubmissions()">Refresh</button>
+  </div>
+  <div id="officer-list"><div class="loading">Loading submissions…</div></div>
+</div>
+
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby3Mv457KazpR887HNiGjv2n0ieiDox4BD_m8oqRz_cOSVIye5I2tvWQtD_f9lYtCaj/exec";
+const PASSCODE = "CHANGE-ME-1234";
+let submissionsCache = [];
+
+function checkPasscode(){
+  const val = document.getElementById('passcodeInput').value.trim();
+  if (val === PASSCODE){
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('dashboardApp').style.display = 'block';
+    loadSubmissions();
+  } else {
+    document.getElementById('gateErr').classList.add('show');
+  }
+}
+
+async function loadSubmissions(){
+  const listEl = document.getElementById('officer-list');
+  listEl.innerHTML = '<div class="loading">Loading submissions…</div>';
+  try{
+    const res = await fetch(SCRIPT_URL, { method: 'GET' });
+    const items = await res.json();
+    items.sort((a,b) => b.timestamp - a.timestamp);
+    submissionsCache = items;
+    renderOfficerList();
+  }catch(e){
+    listEl.innerHTML = '<div class="empty">Could not load submissions from the Google Sheet. Check your connection and try refreshing.</div>';
+  }
+}
+
+function avgCurrentLevel(data){
+  const nums = data.levels.map(l => parseFloat(l.current)).filter(n => !isNaN(n));
+  if (!nums.length) return null;
+  return Math.round(nums.reduce((a,b)=>a+b,0) / nums.length);
+}
+
+function ringSVG(pct){
+  const p = pct === null ? 0 : Math.max(0, Math.min(100, pct));
+  const r = 22, c = 2 * Math.PI * r;
+  const offset = c - (p/100) * c;
+  const color = p >= 75 ? '#2F6F4E' : (p >= 50 ? '#C97A1E' : '#C0392B');
+  return `<svg width="52" height="52" viewBox="0 0 52 52">
+    <circle cx="26" cy="26" r="${r}" fill="none" stroke="#E4EAF0" stroke-width="6"/>
+    <circle cx="26" cy="26" r="${r}" fill="none" stroke="${color}" stroke-width="6" stroke-dasharray="${c}" stroke-dashoffset="${offset}" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function renderOfficerList(){
+  const listEl = document.getElementById('officer-list');
+  const query = document.getElementById('searchBox').value.trim().toLowerCase();
+  let items = submissionsCache;
+  if (query){
+    items = items.filter(d =>
+      (d.centerName||'').toLowerCase().includes(query) ||
+      (d.teacherName||'').toLowerCase().includes(query) ||
+      (d.subjectName||'').toLowerCase().includes(query)
+    );
+  }
+  if (!items.length){
+    listEl.innerHTML = '<div class="empty">No submissions yet. Once teachers submit the form, entries will appear here.</div>';
+    return;
+  }
+  listEl.innerHTML = items.map(d => {
+    const pct = avgCurrentLevel(d);
+    const date = new Date(d.timestamp).toLocaleDateString(undefined, {year:'numeric',month:'short',day:'numeric'});
+    return `
+    <div class="sub-card">
+      <div class="sub-summary" onclick="toggleDetail('${d.id}')">
+        <div class="ring-wrap">${ringSVG(pct)}<div class="ring-label">${pct === null ? '—' : pct + '%'}</div></div>
+        <div class="sub-meta">
+          <div class="names">${escapeHtml(d.teacherName)} · ${escapeHtml(d.subjectName)}</div>
+          <div class="sub">${escapeHtml(d.centerName)} · submitted ${date}</div>
+        </div>
+        <div class="chevron" id="chev-${d.id}">&#9662;</div>
+      </div>
+      <div class="sub-detail" id="detail-${d.id}">
+        ${detailHtml(d)}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function detailHtml(d){
+  const levelRows = d.levels.map(l => `<tr><td style="font-weight:600;">${l.level}</td><td style="text-align:center;">${l.current || '—'}${l.current?'%':''}</td><td style="text-align:center;">${l.target || '—'}${l.target?'%':''}</td></tr>`).join('');
+  const skillRows = d.skills.map(s => `<tr><td style="font-weight:600;">${s.skill}</td>${s.months.map(m => `<td style="text-align:center;">${m || '—'}${m?'%':''}</td>`).join('')}</tr>`).join('');
+  return `
+    <div class="detail-block">
+      <h3>Classroom performance level</h3>
+      <table><thead><tr><th>Level</th><th style="text-align:center;">Current</th><th style="text-align:center;">Target</th></tr></thead><tbody>${levelRows}</tbody></table>
+    </div>
+    <div class="detail-block">
+      <h3>Progress percentage</h3>
+      <table><thead><tr><th>Skill</th><th style="text-align:center;">M1</th><th style="text-align:center;">M2</th><th style="text-align:center;">M3</th><th style="text-align:center;">M4</th></tr></thead><tbody>${skillRows}</tbody></table>
+    </div>
+    <div class="detail-block">
+      <h3>Improvement goals</h3>
+      <div class="free-text">${escapeHtml(d.improvementGoals) || '—'}</div>
+    </div>
+    <div class="detail-block" style="margin-bottom:0;">
+      <h3>Support areas</h3>
+      <div class="free-text">${escapeHtml(d.supportAreas) || '—'}</div>
+    </div>
+  `;
+}
+
+function toggleDetail(id){
+  const el = document.getElementById('detail-' + id);
+  const chev = document.getElementById('chev-' + id);
+  const isOpen = el.classList.toggle('open');
+  chev.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
+function escapeHtml(str){
+  if (!str) return '';
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+</script>
+</body>
+</html>

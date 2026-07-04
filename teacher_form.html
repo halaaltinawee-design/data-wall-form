@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Data Wall — Teacher Submission</title>
+<style>
+  :root{
+    --blue-deep:#1E5A8E;
+    --blue-mid:#3579B1;
+    --blue-tint:#EAF2FA;
+    --blue-tint2:#D7E7F7;
+    --red:#C0392B;
+    --green:#2F6F4E;
+    --green-tint:#E7F3EC;
+    --bg:#F5F7FA;
+    --card:#FFFFFF;
+    --text:#1F2937;
+    --muted:#667085;
+    --border:#DCE4EC;
+    --border-strong:#B9CBDD;
+    --radius:10px;
+    --shadow:0 1px 3px rgba(16,24,40,0.06);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);}
+  .app{max-width:760px;margin:0 auto;padding:24px 20px 60px;}
+  .brand h1{font-size:22px;font-weight:600;margin:0 0 2px;color:var(--blue-deep);}
+  .brand p{margin:0 0 20px;font-size:13px;color:var(--muted);}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden;}
+  .card-head{background:var(--blue-tint);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+  .card-head h2{font-size:15px;margin:0;color:var(--red);font-weight:700;}
+  .card-body{padding:16px 18px;}
+  label{font-size:13px;font-weight:600;color:var(--green);display:block;margin-bottom:6px;}
+  input[type=text], textarea{
+    width:100%;padding:9px 10px;border:1px solid var(--border-strong);border-radius:8px;
+    font-size:14px;color:var(--text);background:#fff;font-family:inherit;
+  }
+  input[type=text]:focus, textarea:focus{outline:none;border-color:var(--blue-mid);box-shadow:0 0 0 3px var(--blue-tint2);}
+  textarea{resize:vertical;min-height:70px;}
+  .field-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:4px;}
+  @media (max-width:640px){.field-row{grid-template-columns:1fr;}}
+  table{width:100%;border-collapse:collapse;font-size:14px;}
+  th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.02em;color:var(--muted);font-weight:700;padding:6px 8px;border-bottom:2px solid var(--border);}
+  td{padding:7px 8px;border-bottom:1px solid var(--border);}
+  td.label-cell{font-weight:600;white-space:nowrap;}
+  td input[type=text]{padding:6px 8px;font-size:13px;text-align:center;}
+  .pct-input{max-width:80px;margin:0 auto;}
+  .submit-row{display:flex;justify-content:flex-end;margin-top:6px;}
+  button.primary{background:var(--blue-deep);color:#fff;border:none;border-radius:8px;padding:11px 24px;font-size:15px;font-weight:600;cursor:pointer;}
+  button.primary:hover{background:var(--blue-mid);}
+  button.primary:disabled{opacity:.6;cursor:not-allowed;}
+  .status{font-size:13px;margin-top:10px;padding:10px 12px;border-radius:8px;display:none;}
+  .status.show{display:block;}
+  .status.ok{background:var(--green-tint);color:var(--green);}
+  .status.err{background:#FBEAEA;color:var(--red);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="brand">
+    <h1>Data Wall — Teacher Submission</h1>
+    <p>Fill in your class data below and submit it to your education officer.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Teacher &amp; class info</h2></div>
+    <div class="card-body">
+      <div class="field-row">
+        <div>
+          <label for="centerName">Center name</label>
+          <input type="text" id="centerName" placeholder="e.g. Amman Center" />
+        </div>
+        <div>
+          <label for="teacherName">Teacher name</label>
+          <input type="text" id="teacherName" placeholder="e.g. Sara Ahmad" />
+        </div>
+        <div>
+          <label for="subjectName">Subject name</label>
+          <input type="text" id="subjectName" placeholder="e.g. Mathematics" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Classroom performance level</h2><span style="font-size:13px;color:var(--muted);font-weight:600;">مستوى الصفوف</span></div>
+    <div class="card-body">
+      <table>
+        <thead><tr><th>Level</th><th style="text-align:center;">Current level (%)</th><th style="text-align:center;">Target level (%)</th></tr></thead>
+        <tbody id="level-rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Progress percentage</h2><span style="font-size:13px;color:var(--muted);font-weight:600;">نسب التقدم</span></div>
+    <div class="card-body" style="overflow-x:auto;">
+      <table style="min-width:520px;">
+        <thead><tr><th>Skill</th><th style="text-align:center;">Month 1</th><th style="text-align:center;">Month 2</th><th style="text-align:center;">Month 3</th><th style="text-align:center;">Month 4</th></tr></thead>
+        <tbody id="skill-rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Improvement goals</h2><span style="font-size:13px;color:var(--muted);font-weight:600;">اهداف التحسين</span></div>
+    <div class="card-body">
+      <textarea id="improvementGoals" placeholder="e.g. Level 2: improve problem solving skills"></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Support areas</h2><span style="font-size:13px;color:var(--muted);font-weight:600;">مهارات تحتاج دعم</span></div>
+    <div class="card-body">
+      <textarea id="supportAreas" placeholder="e.g. Participation needs improvement"></textarea>
+    </div>
+  </div>
+
+  <div class="submit-row">
+    <button class="primary" id="submitBtn" onclick="submitForm()">Submit to education officer</button>
+  </div>
+  <div class="status" id="statusBox"></div>
+</div>
+
+<script>
+const LEVELS = ["Level 1","Level 2","Level 3"];
+const SKILLS = ["Participation","Communication","Collaboration"];
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby3Mv457KazpR887HNiGjv2n0ieiDox4BD_m8oqRz_cOSVIye5I2tvWQtD_f9lYtCaj/exec";
+
+function buildLevelRows(){
+  const tbody = document.getElementById('level-rows');
+  tbody.innerHTML = LEVELS.map((lvl,i) => `
+    <tr>
+      <td class="label-cell">${lvl}</td>
+      <td><input type="text" inputmode="numeric" class="pct-input" id="level-current-${i}" placeholder="%" /></td>
+      <td><input type="text" inputmode="numeric" class="pct-input" id="level-target-${i}" placeholder="%" /></td>
+    </tr>`).join('');
+}
+
+function buildSkillRows(){
+  const tbody = document.getElementById('skill-rows');
+  tbody.innerHTML = SKILLS.map((sk,i) => `
+    <tr>
+      <td class="label-cell">${sk}</td>
+      ${[0,1,2,3].map(m => `<td><input type="text" inputmode="numeric" class="pct-input" id="skill-${i}-m${m}" placeholder="%" /></td>`).join('')}
+    </tr>`).join('');
+}
+
+function showStatus(msg, ok){
+  const box = document.getElementById('statusBox');
+  box.textContent = msg;
+  box.className = 'status show ' + (ok ? 'ok' : 'err');
+}
+
+function collectForm(){
+  return {
+    id: 'sub_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+    timestamp: Date.now(),
+    centerName: document.getElementById('centerName').value.trim(),
+    teacherName: document.getElementById('teacherName').value.trim(),
+    subjectName: document.getElementById('subjectName').value.trim(),
+    levels: LEVELS.map((lvl,i) => ({
+      level: lvl,
+      current: document.getElementById(`level-current-${i}`).value.trim(),
+      target: document.getElementById(`level-target-${i}`).value.trim()
+    })),
+    skills: SKILLS.map((sk,i) => ({
+      skill: sk,
+      months: [0,1,2,3].map(m => document.getElementById(`skill-${i}-m${m}`).value.trim())
+    })),
+    improvementGoals: document.getElementById('improvementGoals').value.trim(),
+    supportAreas: document.getElementById('supportAreas').value.trim()
+  };
+}
+
+async function submitForm(){
+  const data = collectForm();
+  if (!data.centerName || !data.teacherName || !data.subjectName){
+    showStatus('Please fill in center name, teacher name, and subject name before submitting.', false);
+    return;
+  }
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+  try{
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+    showStatus('Submitted. Thank you!', true);
+    resetForm();
+  }catch(e){
+    showStatus('Could not submit right now. Please check your internet connection and try again.', false);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Submit to education officer';
+  }
+}
+
+function resetForm(){
+  ['centerName','teacherName','subjectName','improvementGoals','supportAreas'].forEach(id => document.getElementById(id).value = '');
+  LEVELS.forEach((lvl,i) => { document.getElementById(`level-current-${i}`).value=''; document.getElementById(`level-target-${i}`).value=''; });
+  SKILLS.forEach((sk,i) => { [0,1,2,3].forEach(m => document.getElementById(`skill-${i}-m${m}`).value=''); });
+}
+
+buildLevelRows();
+buildSkillRows();
+</script>
+</body>
+</html>
